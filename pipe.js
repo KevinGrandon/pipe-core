@@ -22,11 +22,36 @@ function Pipe(config) {
   this.config = config;
 
   this.isWindow = (typeof window === 'object');
-  this.isWorker = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope);
   this.isSharedWorker = (typeof SharedWorkerGlobalScope !== 'undefined' && self instanceof SharedWorkerGlobalScope);
+  // A shared worker will have a WorkerGlobalScope and a SharedWorkerGlobalScope
+  this.isWorker = !this.isSharedWorker && (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope);
   this.isServiceWorker = (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope);
 
-  if (this.isWorker) {
+  if(this.isSharedWorker) {
+    SharedWorkerGlobalScope.onconnect = e => {
+      var port = this._port = e.ports[0];
+      port.start();
+      port.onmessage = function(e) {
+        var workerResult = 'Result: ' + e.data;
+        port.postMessage(workerResult);
+      }
+
+      this.debug('shared worker connected');
+      this.debug(e.data);
+
+      if (!this._handlers[e.data.resource]) {
+        this.debug('no handler for ' + e.data.resource);
+        return;
+      }
+
+      this._handlers[e.data.resource](e.data.params).then((results) => {
+        port.postMessage({
+          resource: e.data.resource,
+          results: results
+        });
+      });
+    }
+  } else if (this.isWorker) {
     self.addEventListener('message', e => {
       this.debug(e.data);
 
@@ -41,25 +66,6 @@ function Pipe(config) {
         });
       });
     }, false);
-  } else if(this.isSharedWorker) {
-    SharedWorkerGlobalScope.onconnect = e => {
-      this._port = e.ports[0];
-
-      this._port.start();
-
-      this._port.onmessage = function(e) {
-        var workerResult = 'Result: ' + e.data;
-        this._port.postMessage(workerResult);
-      }
-
-      this.debug('shared worker connected');
-      this.debug(e.data);
-
-      if (!this._handlers[e.data.resource]) {
-        this.debug('no handler for ' + e.data.resource);
-        return;
-      }
-    }
   }
 }
 
@@ -149,10 +155,10 @@ Pipe.prototype = {
       for (var i in this._workerRefs) {
         var eachEndpoint = this._workerRefs[i];
         if (eachEndpoint instanceof Worker) {
-          console.log('posting to worker', resource, params)
+          console.log('posting to worker', i, resource, params)
           eachEndpoint.postMessage({resource: resource, params: params});
         } else if (eachEndpoint instanceof SharedWorker) {
-          console.log('posting to shared worker', resource, params)
+          console.log('posting to shared worker', i, resource, params)
           eachEndpoint.port.postMessage({resource: resource, params: params});
         }
       }
