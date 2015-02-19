@@ -14,7 +14,10 @@
 function Pipe(config) {
   config = config || {};
   if (config.src) {
-    this._src = config.src;
+    if (!Array.isArray(config.src)) {
+      config.src = [config.src];
+    }
+    this.src = config.src;
   }
   this.config = config;
 
@@ -38,10 +41,10 @@ function Pipe(config) {
 Pipe.prototype = {
 
   /**
-   * The src of a script to connect to.
-   * We possibly go into broadcast mode.
+   * The src of all connected scripts.
+   * @type {Array}
    */
-  _src: null,
+  src: [],
 
   /**
    * A list of workers per script src.
@@ -67,15 +70,16 @@ Pipe.prototype = {
 
   /**
    * Returns a worker object for the current SRC.
+   * @param {String} src The script of the endpoint.
    */
-  getWorkerTypeForSrc: function() {
+  getWorkerTypeForSrc: function(src) {
     // Check if we have a configured override for this src.
-    if (this.config.overrides && this.config.overrides[this._src]) {
-      return this.config.overrides[this._src];
+    if (this.config.overrides && this.config.overrides[src]) {
+      return new this.config.overrides[src].WorkerClass(src);
     }
 
     // Use a worker by default.
-    return new Worker(this._src);
+    return new Worker(src);
   },
 
   /**
@@ -85,21 +89,27 @@ Pipe.prototype = {
    */
   request: function(resource, params) {
     return new Promise(resolve => {
-      var pipeWorker;
-      if (!this._workerRefs[this._src]) {
-        pipeWorker = this._workerRefs[this._src] = this.getWorkerTypeForSrc();
-        pipeWorker.addEventListener('message', this.onSmartWorkerMessage.bind(this), false);
+      // Instantiate all requested workers.
+      if (!this._workerRefs.length) {
+        this.src.forEach(src => {
+          var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
+          endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
+        });
       }
 
       this._handlers[resource] = resolve;
-      pipeWorker.postMessage({resource: resource, params: params});
+
+      // Broadcast the message to all workers for now.
+      for (var i in this._workerRefs) {
+        this._workerRefs[i].postMessage({resource: resource, params: params});
+      }
     });
   },
 
   /**
-   * Called whenever we receive a message from a worker.
+   * Called whenever we receive a message from an endpoint.
    */
-  onSmartWorkerMessage: function(e) {
+  onEndpointMessage: function(e) {
     console.log('Worker said: ', e.data);
 
     if (e.data.resource) {
