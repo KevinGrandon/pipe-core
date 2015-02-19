@@ -28,28 +28,24 @@ function Pipe(config) {
   this.isServiceWorker = (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope);
 
   if(this.isSharedWorker) {
-    SharedWorkerGlobalScope.onconnect = e => {
+    onconnect = e => {
       var port = this._port = e.ports[0];
       port.start();
-      port.onmessage = function(e) {
-        var workerResult = 'Result: ' + e.data;
-        port.postMessage(workerResult);
-      }
 
-      this.debug('shared worker connected');
-      this.debug(e.data);
+      port.onmessage = e => {
+        this.debug('got shared worker message' + e.data.resource);
+        if (!this._handlers[e.data.resource]) {
+          this.debug('no handler for ' + e.data.resource);
+          return;
+        }
 
-      if (!this._handlers[e.data.resource]) {
-        this.debug('no handler for ' + e.data.resource);
-        return;
-      }
-
-      this._handlers[e.data.resource](e.data.params).then((results) => {
-        port.postMessage({
-          resource: e.data.resource,
-          results: results
+        this._handlers[e.data.resource](e.data.params).then((results) => {
+          port.postMessage({
+            resource: e.data.resource,
+            results: results
+          });
         });
-      });
+      }
     }
   } else if (this.isWorker) {
     self.addEventListener('message', e => {
@@ -94,6 +90,12 @@ Pipe.prototype = {
    * Debugs a message from a worker by outputting it to the console.
    */
   debug: function(message) {
+
+    if (this.isWindow) {
+      console.log(message);
+      return;
+    }
+
     var obj = self;
 
     if (this._port) {
@@ -120,8 +122,8 @@ Pipe.prototype = {
       endpoint = new Worker(src);
     }
 
-    endpoint.onerror = () => {
-      this.debug('endpoint error');
+    endpoint.onerror = (e) => {
+      this.debug('endpoint error ' + e.message);
     };
 
     return endpoint;
