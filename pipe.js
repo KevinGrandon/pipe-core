@@ -23,11 +23,16 @@ function Pipe(config) {
 
   this.isWindow = (typeof window === 'object');
   this.isWorker = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope);
+  this.isSharedWorker = (typeof SharedWorkerGlobalScope !== 'undefined' && self instanceof SharedWorkerGlobalScope);
 
   if (this.isWorker) {
     self.addEventListener('message', e => {
       this.debug(e.data);
 
+      if (!this._handlers[e.data.resource]) {
+        this.debug('no handler for ' + e.data.resource);
+        return;
+      }
       this._handlers[e.data.resource](e.data.params).then((results) => {
         self.postMessage({
           resource: e.data.resource,
@@ -64,7 +69,7 @@ Pipe.prototype = {
    */
   debug: function(message) {
     self.postMessage({
-      debug: message
+      debug: message + ' shared worker is: ' + this.isSharedWorker
     });
   },
 
@@ -94,6 +99,11 @@ Pipe.prototype = {
         this.src.forEach(src => {
           var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
           endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
+
+          // Start the port for shared workers
+          if (endpoint instanceof SharedWorker) {
+            endpoint.port.start();
+          }
         });
       }
 
@@ -101,7 +111,12 @@ Pipe.prototype = {
 
       // Broadcast the message to all workers for now.
       for (var i in this._workerRefs) {
-        this._workerRefs[i].postMessage({resource: resource, params: params});
+        var eachEndpoint = this._workerRefs[i];
+        if (eachEndpoint instanceof Worker) {
+          eachEndpoint.postMessage({resource: resource, params: params});
+        } else if (eachEndpoint instanceof SharedWorker) {
+          eachEndpoint.port.postMessage({resource: resource, params: params});
+        }
       }
     });
   },
