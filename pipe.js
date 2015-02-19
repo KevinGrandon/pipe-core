@@ -28,24 +28,31 @@ function Pipe(config) {
   this.isServiceWorker = (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope);
 
   if(this.isSharedWorker) {
+    var postToAll = (message) => {
+      this._port.forEach(port => {
+        port.postMessage(message);
+      });
+    };
+
     onconnect = e => {
-      var port = this._port = e.ports[0];
-      port.start();
+      var ports = this._port = e.ports;
+      ports.forEach(port => {
+        port.start();
 
-      port.onmessage = e => {
-        this.debug('got shared worker message' + e.data.resource);
-        if (!this._handlers[e.data.resource]) {
-          this.debug('no handler for ' + e.data.resource);
-          return;
-        }
-
-        this._handlers[e.data.resource](e.data.params).then((results) => {
-          port.postMessage({
-            resource: e.data.resource,
-            results: results
+        port.onmessage = e => {
+          this.debug('got shared worker message' + e.data.resource);
+          if (!this._handlers[e.data.resource]) {
+            this.debug('no handler for ' + e.data.resource);
+            return;
+          }
+          this._handlers[e.data.resource](e.data.params).then((results) => {
+            postToAll({
+              resource: e.data.resource,
+              results: results
+            });
           });
-        });
-      };
+        };
+      });
     };
   } else if (this.isWorker) {
     self.addEventListener('message', e => {
@@ -61,6 +68,21 @@ function Pipe(config) {
         });
       });
     }, false);
+  } else {
+    // Instantiate all requested workers.
+    if (!Object.keys(this._workerRefs).length) {
+      this.src.forEach(src => {
+        var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
+
+        // Start the port for shared workers
+        if (endpoint instanceof SharedWorker) {
+          endpoint.port.start();
+          endpoint.port.addEventListener('message', this.onEndpointMessage.bind(this), false);
+        } else if (endpoint instanceof Worker) {
+          endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
+        }
+      });
+    }
   }
 }
 
@@ -95,13 +117,16 @@ Pipe.prototype = {
       return;
     }
 
-    var obj = self;
-
     if (this._port) {
-      obj = this._port;
+      this._port.forEach(port => {
+        port.postMessage({
+          debug: message
+        });
+      });
+      return;
     }
 
-    obj.postMessage({
+    self.postMessage({
       debug: message
     });
   },
@@ -135,21 +160,6 @@ Pipe.prototype = {
    */
   request: function(resource, params) {
     return new Promise(resolve => {
-      // Instantiate all requested workers.
-      if (!Object.keys(this._workerRefs).length) {
-        this.src.forEach(src => {
-          var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
-
-          // Start the port for shared workers
-          if (endpoint instanceof SharedWorker) {
-            endpoint.port.start();
-            endpoint.port.addEventListener('message', this.onEndpointMessage.bind(this), false);
-          } else if (endpoint instanceof Worker) {
-            endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
-          }
-        });
-      }
-
       this._handlers[resource] = resolve;
 
       // Broadcast the message to all workers for now.
@@ -173,6 +183,7 @@ Pipe.prototype = {
     console.log('Worker said: ', e);
 
     if (e.data.resource) {
+      console.log('Worker said: ', e.data.resource, this._handlers);
       if (!this._handlers) { return; }
       this._handlers[e.data.resource](e.data.results);
     }
