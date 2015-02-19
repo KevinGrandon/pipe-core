@@ -45,12 +45,11 @@ function Pipe(config) {
             results: results
           });
         });
-      }
-    }
+      };
+    };
   } else if (this.isWorker) {
     self.addEventListener('message', e => {
       this.debug(e.data);
-
       if (!this._handlers[e.data.resource]) {
         this.debug('no handler for ' + e.data.resource);
         return;
@@ -123,7 +122,7 @@ Pipe.prototype = {
     }
 
     endpoint.onerror = (e) => {
-      this.debug('endpoint error ' + e.message);
+      this.debug('endpoint error ' + src + ' - ' + e.message);
     };
 
     return endpoint;
@@ -157,10 +156,10 @@ Pipe.prototype = {
       for (var i in this._workerRefs) {
         var eachEndpoint = this._workerRefs[i];
         if (eachEndpoint instanceof Worker) {
-          console.log('posting to worker', i, resource, params)
+          console.log('posting to worker', i, resource, params);
           eachEndpoint.postMessage({resource: resource, params: params});
         } else if (eachEndpoint instanceof SharedWorker) {
-          console.log('posting to shared worker', i, resource, params)
+          console.log('posting to shared worker', i, resource, params);
           eachEndpoint.port.postMessage({resource: resource, params: params});
         }
       }
@@ -174,6 +173,7 @@ Pipe.prototype = {
     console.log('Worker said: ', e);
 
     if (e.data.resource) {
+      if (!this._handlers) { return; }
       this._handlers[e.data.resource](e.data.results);
     }
   },
