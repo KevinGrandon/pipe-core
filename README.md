@@ -11,12 +11,14 @@ bower install KevinGrandon/pipe.js
 
 ## Example Usage
 
-*Include pipe.js in your page*
+**Include pipe.js in your page**
+
 ```
 <script defer src="/bower_components/pipe-core/pipe.js"></script>
 ```
 
-*Requesting data*
+**Requesting data**
+
 ```js
 var pipe = new Pipe({src: '/myworker.js'});
 pipe.request('myEventFetchSomeData').then(results => {
@@ -27,7 +29,8 @@ pipe.request('myEventFetchSomeData').then(results => {
 
 ```
 
-*Listening for data, from a worker*
+**Listening for data, from a worker**
+
 ```js
 importScripts('/bower_components/pipe-core/pipe.js');
 
@@ -39,4 +42,39 @@ pipe.handle('myEventFetchSomeData', () => {
   });
 });
 
+```
+
+**Multiple Workers**
+
+You can setup a pipe to communicate to multiple workers by passing an array of srcs into the constructor.
+
+```js
+var pipe = new Pipe({src: [
+    '/first_worker.js'
+    '/second_worker.js'
+]});
+pipe.request('fetchFromOneWorker').then(results => {
+  results.forEach(result => {
+    // Do something with the result.
+  });
+});
+
+```
+
+**Overriding Worker Types**
+
+You can override the worker types via configuration. For now this is how you would specify a SharedWorker.
+
+```js
+var overrides = {
+  '/second_worker.js': {
+    WorkerClass: SharedWorker
+  }
+};
+
+var pipe = new Pipe({src: [
+    '/first_worker.js'
+    '/second_worker.js'
+],
+overrides: overrides});
 ```
