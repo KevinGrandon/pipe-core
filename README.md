@@ -78,3 +78,6 @@ var pipe = new Pipe({src: [
 ],
 overrides: overrides});
 ```
+
+## Related Libraries
+* [pipe-contract](https://github.com/kevingrandon/pipe-contract) - Add contracts which provide method and param validation.
