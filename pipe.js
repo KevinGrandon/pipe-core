@@ -29,31 +29,31 @@ function Pipe(config) {
 
   if(this.isSharedWorker) {
     var postToAll = (message) => {
-      this._port.forEach(port => {
+      this._ports.forEach(port => {
         port.postMessage(message);
       });
     };
 
-    onconnect = e => {
-      var ports = this._port = e.ports;
-      ports.forEach(port => {
-        port.start();
+    self.addEventListener('connect', e => {
+      var port = e.ports[0];
+      this._ports.push(port);
 
-        port.onmessage = e => {
-          this.debug('got shared worker message' + e.data.resource);
-          if (!this._handlers[e.data.resource]) {
-            this.debug('no handler for ' + e.data.resource);
-            return;
-          }
-          this._handlers[e.data.resource](e.data.params).then((results) => {
-            postToAll({
-              resource: e.data.resource,
-              results: results
-            });
+      port.addEventListener('message', e => {
+        this.debug('got shared worker message' + e.data.resource);
+        if (!this._handlers[e.data.resource]) {
+          this.debug('no handler for ' + e.data.resource);
+          return;
+        }
+        this._handlers[e.data.resource](e.data.params).then((results) => {
+          postToAll({
+            resource: e.data.resource + ':success',
+            results: results
           });
-        };
+        });
       });
-    };
+
+      port.start();
+    });
   } else if (this.isWorker) {
     self.addEventListener('message', e => {
       this.debug(e.data);
@@ -76,8 +76,8 @@ function Pipe(config) {
 
         // Start the port for shared workers
         if (endpoint instanceof SharedWorker) {
-          endpoint.port.start();
           endpoint.port.addEventListener('message', this.onEndpointMessage.bind(this), false);
+          endpoint.port.start();
         } else if (endpoint instanceof Worker) {
           endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
         }
@@ -87,6 +87,12 @@ function Pipe(config) {
 }
 
 Pipe.prototype = {
+
+  /**
+   * A list of all active ports.
+   * @type {Array}
+   */
+  _ports: [],
 
   /**
    * The src of all connected scripts.
@@ -117,8 +123,8 @@ Pipe.prototype = {
       return;
     }
 
-    if (this._port) {
-      this._port.forEach(port => {
+    if (this._ports) {
+      this._ports.forEach(port => {
         port.postMessage({
           debug: message
         });
@@ -184,7 +190,7 @@ Pipe.prototype = {
 
     if (e.data.resource) {
       console.log('Worker said: ', e.data.resource, this._handlers);
-      if (!this._handlers) { return; }
+      if (!this._handlers || !this._handlers[e.data.resource]) { return; }
       this._handlers[e.data.resource](e.data.results);
     }
   },
