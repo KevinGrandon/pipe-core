@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/KevinGrandon/pipe-core.svg?branch=master)](https://travis-ci.org/KevinGrandon/pipe-core)
+
 # pipe-core
 
 Pipe is a framework for creating fast and responsive HTML5 applications. It enables you to build an architecture which offloads work to Workers and SharedWorkers, and communicate easily between them.
