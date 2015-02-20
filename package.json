@@ -7,6 +7,10 @@
     "type": "git",
     "url": "https://github.com/KevinGrandon/pipe-core.git"
   },
+  "scripts": {
+    "test": "./node_modules/karma/bin/karma start test/karma.conf.js --single-run",
+    "test-dev": "./node_modules/karma/bin/karma start test/karma.conf.js"
+  },
   "author": "Kevin Grandon <kevingrandon@yahoo.com>",
   "license": "MPL",
   "bugs": {
