@@ -10,35 +10,44 @@ suite('pipe-core', function() {
     this.sinon.restore();
   });
 
-  suite('validates context', function() {
+  suite('Worker', function() {
+    var pipe;
+
     setup(function() {
+      pipe = new Pipe({src: '/base/test/worker.js'});
     });
 
     teardown(function() {
-      
+       pipe.terminate();
     });
 
-    test('valid context', function(done) {
-      done();
-    });
-
-    test('invalid context', function(done) {
-      done();
+    test('request data', function(done) {
+      pipe.request('getAll').then(results => {
+        assert.equal(results.length, 3);
+        done();
+      });
     });
   });
 
-  suite('validates params', function() {
+  suite('SharedWorker', function() {
+    var pipe;
+
     setup(function() {
+      pipe = new Pipe({
+        src: '/base/test/worker.js',
+        overrides: {
+          '/base/test/worker.js': {
+            WorkerClass: SharedWorker
+          }
+        }
+      });
     });
 
     teardown(function() {
+      pipe.terminate();
     });
 
-    test('invalid params', function(done) {
-      done();
-    });
-
-    test('valid params', function(done) {
+    test('request data', function(done) {
       done();
     });
   });

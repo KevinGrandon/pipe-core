@@ -208,6 +208,20 @@ Pipe.prototype = {
    */
   requestPage: function(url) {
     window.open(url, '_blank');
+  },
+
+  /**
+   * Terminates all connected workers.
+   */
+  terminate: function() {
+    for (var i in this._workerRefs) {
+      var ref = this._workerRefs[i];
+      if (ref instanceof Worker) {
+        ref.terminate();
+      } else if (ref instanceof SharedWorker) {
+        ref.port.close();
+      }
+    }
   }
 
 };

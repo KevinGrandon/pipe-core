@@ -1,4 +1,4 @@
-importScripts('/node_modules/pipe-core/pipe.js');
+importScripts('/base/pipe.js');
 
 var allRecords = [
   {id: 1},
