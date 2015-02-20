@@ -1,6 +1,6 @@
-# Pipe.js
+# pipe-core
 
-Pipe.js is a framework for creating fast and responsive HTML5 applications. It enables you to build an architecture which offloads work to Workers and SharedWorkers, and communicate easily between them.
+Pipe is a framework for creating fast and responsive HTML5 applications. It enables you to build an architecture which offloads work to Workers and SharedWorkers, and communicate easily between them.
 
 ## Get the code
 ```
@@ -9,9 +9,9 @@ bower install KevinGrandon/pipe.js
 
 ## Example Usage
 
-*Include Pipe.js in your page*
+*Include pipe.js in your page*
 ```
-<script defer src="/bower_components/pipe.js/pipe.js"></script>
+<script defer src="/bower_components/pipe-core/pipe.js"></script>
 ```
 
 *Requesting data*
@@ -27,7 +27,7 @@ pipe.request('myEventFetchSomeData').then(results => {
 
 *Listening for data, from a worker*
 ```js
-importScripts('/bower_components/pipe.js/pipe.js');
+importScripts('/bower_components/pipe-core/pipe.js');
 
 var pipe = new Pipe();
 
