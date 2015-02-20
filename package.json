@@ -12,5 +12,13 @@
   "bugs": {
     "url": "https://github.com/KevinGrandon/pipe-core/issues"
   },
-  "homepage": "https://github.com/KevinGrandon/pipe-core"
+  "homepage": "https://github.com/KevinGrandon/pipe-core",
+  "dependencies": {
+    "karma": "^0.12.31",
+    "karma-firefox-launcher": "^0.1.4",
+    "karma-mocha": "^0.1.10",
+    "karma-sinon-chai": "^0.3.0",
+    "mocha": "^2.1.0",
+    "mozilla-download": "^0.4.6"
+  }
 }
