@@ -46,7 +46,7 @@ function Pipe(config) {
         }
         this._handlers[e.data.resource](e.data.params).then((results) => {
           postToAll({
-            resource: e.data.resource + ':success',
+            resource: e.data.resource,
             results: results
           });
         });
@@ -70,19 +70,17 @@ function Pipe(config) {
     }, false);
   } else {
     // Instantiate all requested workers.
-    if (!Object.keys(this._workerRefs).length) {
-      this.src.forEach(src => {
-        var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
+    this.src.forEach(src => {
+      var endpoint = this._workerRefs[src] = this.getWorkerTypeForSrc(src);
 
-        // Start the port for shared workers
-        if (endpoint instanceof SharedWorker) {
-          endpoint.port.addEventListener('message', this.onEndpointMessage.bind(this), false);
-          endpoint.port.start();
-        } else if (endpoint instanceof Worker) {
-          endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
-        }
-      });
-    }
+      // Start the port for shared workers
+      if (endpoint instanceof SharedWorker) {
+        endpoint.port.addEventListener('message', this.onEndpointMessage.bind(this), false);
+        endpoint.port.start();
+      } else if (endpoint instanceof Worker) {
+        endpoint.addEventListener('message', this.onEndpointMessage.bind(this), false);
+      }
+    });
   }
 }
 
@@ -146,9 +144,11 @@ Pipe.prototype = {
 
     // Check if we have a configured override for this src.
     if (this.config.overrides && this.config.overrides[src]) {
+      console.log('making shared worker.');
       endpoint = new this.config.overrides[src].WorkerClass(src);
     } else {
       // Use a worker by default.
+      console.log('making worker.');
       endpoint = new Worker(src);
     }
 
@@ -186,7 +186,7 @@ Pipe.prototype = {
    * Called whenever we receive a message from an endpoint.
    */
   onEndpointMessage: function(e) {
-    console.log('Worker said: ', e);
+    console.log('Worker said: ', e, e.data);
 
     if (e.data.resource) {
       console.log('Worker said: ', e.data.resource, this._handlers);
@@ -222,6 +222,7 @@ Pipe.prototype = {
         ref.port.close();
       }
     }
+    this._workerRefs = {};
   }
 
 };

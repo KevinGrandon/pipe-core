@@ -48,7 +48,10 @@ suite('pipe-core', function() {
     });
 
     test('request data', function(done) {
-      done();
+      pipe.request('getAll').then(results => {
+        assert.equal(results.length, 3);
+        done();
+      });
     });
   });
 });
