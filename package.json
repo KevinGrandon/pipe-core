@@ -1,0 +1,16 @@
+{
+  "name": "pipe-core",
+  "version": "1.0.0",
+  "description": "Pipe is a framework for creating fast and responsive HTML5 applications.",
+  "main": "pipe.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KevinGrandon/pipe-core.git"
+  },
+  "author": "Kevin Grandon <kevingrandon@yahoo.com>",
+  "license": "MPL",
+  "bugs": {
+    "url": "https://github.com/KevinGrandon/pipe-core/issues"
+  },
+  "homepage": "https://github.com/KevinGrandon/pipe-core"
+}
