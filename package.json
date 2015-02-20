@@ -1,6 +1,6 @@
 {
   "name": "pipe-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pipe is a framework for creating fast and responsive HTML5 applications.",
   "main": "pipe.js",
   "repository": {
