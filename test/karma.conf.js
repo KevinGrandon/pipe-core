@@ -12,6 +12,7 @@ module.exports = function(config) {
       firefox_latest: {
         base: 'FirefoxNightly',
         prefs: {
+          'dom.serviceWorkers.enabled': true,
           'dom.webcomponents.enabled': true
         }
       }
@@ -19,6 +20,10 @@ module.exports = function(config) {
 
     files: [
       'pipe.js',
+      {
+        pattern: 'test/sw.js',
+        included: false
+      },
       {
         pattern: 'test/worker.js',
         included: false

@@ -27,7 +27,7 @@ function Pipe(config) {
   this.isWorker = !this.isSharedWorker && (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope);
   this.isServiceWorker = (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope);
 
-  if(this.isSharedWorker) {
+  if(this.isSharedWorker || this.isServiceWorker) {
     var postToAll = (message) => {
       this._ports.forEach(port => {
         port.postMessage(message);
@@ -143,12 +143,17 @@ Pipe.prototype = {
     var endpoint;
 
     // Check if we have a configured override for this src.
-    if (this.config.overrides && this.config.overrides[src]) {
-      console.log('making shared worker.');
+    if (this.config.overrides && this.config.overrides[src] &&
+        this.config.overrides[src].WorkerClass === SharedWorker) {
+      console.log('making shared worker', src);
       endpoint = new this.config.overrides[src].WorkerClass(src);
+    } else if (this.config.overrides && this.config.overrides[src] &&
+        this.config.overrides[src].WorkerClass === ServiceWorker) {
+      console.log('making service worker', src);
+      endpoint = new ServiceWorkerEndpoint(src);
     } else {
       // Use a worker by default.
-      console.log('making worker.');
+      console.log('making worker', src);
       endpoint = new Worker(src);
     }
 
@@ -173,6 +178,9 @@ Pipe.prototype = {
         var eachEndpoint = this._workerRefs[i];
         if (eachEndpoint instanceof Worker) {
           console.log('posting to worker', i, resource, params);
+          eachEndpoint.postMessage({resource: resource, params: params});
+        } else if (eachEndpoint instanceof ServiceWorkerEndpoint) {
+          console.log('Got service worker endpoint');
           eachEndpoint.postMessage({resource: resource, params: params});
         } else if (eachEndpoint instanceof SharedWorker) {
           console.log('posting to shared worker', i, resource, params);
@@ -225,4 +233,33 @@ Pipe.prototype = {
     this._workerRefs = {};
   }
 
+};
+
+/**
+ * Normalizes service worker initialization and communication.
+ */
+function ServiceWorkerEndpoint(src) {
+  this.getRegistration = navigator.serviceWorker.register(src).then(registration => {
+    console.log('ServiceWorker registration successful: ', registration);
+    this.registration = registration;
+  }).catch(err => {
+    console.log('ServiceWorker registration failed: ', err, err.message);
+  });
+}
+
+ServiceWorkerEndpoint.prototype = {
+  postMessage: function(message) {
+    this.getRegistration.then(() => {
+      navigator.serviceWorker.controller.postMessage(message);
+
+      var states = ['registering', 'installing', 'waiting', 'active'];
+      for (var i = 0; i < states.length; i ++) {
+        var state = states[i];
+        if (this.registration[state]) {
+          console.log('has state: ', state);
+          this.registration[state].postMessage(message);
+        }
+      }
+    });
+  }
 };

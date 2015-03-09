@@ -54,4 +54,30 @@ suite('pipe-core', function() {
       });
     });
   });
+
+  // suite('ServiceWorker', function() {
+  //   var pipe;
+
+  //    setup(function() {
+  //     pipe = new Pipe({
+  //       src: '/base/test/sw.js',
+  //       overrides: {
+  //         '/base/test/sw.js': {
+  //           WorkerClass: ServiceWorker
+  //         }
+  //       }
+  //     });
+  //   });
+
+  //   teardown(function() {
+  //     pipe.terminate();
+  //   });
+
+  //   test('request data', function(done) {
+  //     pipe.request('getAll').then(results => {
+  //       assert.equal(results.length, 3);
+  //       done();
+  //     });
+  //   });
+  // });
 });
